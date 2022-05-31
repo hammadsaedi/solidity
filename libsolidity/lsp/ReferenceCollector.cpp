@@ -21,8 +21,6 @@
 #include <libsolidity/ast/AST.h>
 #include <libsolidity/lsp/LanguageServer.h>
 
-#include <fmt/format.h>
-
 using namespace solidity::frontend;
 using namespace solidity::langutil;
 using namespace std::string_literals;
@@ -45,7 +43,7 @@ vector<Declaration const*> allAnnotatedDeclarations(Identifier const* _identifie
 }
 
 ReferenceCollector::ReferenceCollector(
-	frontend::Declaration const& _declaration,
+	Declaration const& _declaration,
 	std::string const& _sourceIdentifierName
 ):
 	m_declaration{_declaration},
@@ -54,22 +52,22 @@ ReferenceCollector::ReferenceCollector(
 }
 
 std::vector<Reference> ReferenceCollector::collect(
-	frontend::Declaration const* _declaration,
-	frontend::ASTNode const& _ast,
+	Declaration const* _declaration,
+	ASTNode const& _ast,
 	std::string const& _sourceIdentifierName
 )
 {
 	if (!_declaration)
 		return {};
 
-    ReferenceCollector collector(*_declaration, _sourceIdentifierName);
-    _ast.accept(collector);
-    return move(collector.m_result);
+	ReferenceCollector collector(*_declaration, _sourceIdentifierName);
+	_ast.accept(collector);
+	return move(collector.m_result);
 }
 
 std::vector<Reference> ReferenceCollector::collect(
-	frontend::ASTNode const* _sourceNode,
-	frontend::SourceUnit const& _sourceUnit
+	ASTNode const* _sourceNode,
+	SourceUnit const& _sourceUnit
 )
 {
 	if (!_sourceNode)
@@ -80,7 +78,7 @@ std::vector<Reference> ReferenceCollector::collect(
 	if (auto const* identifier = dynamic_cast<Identifier const*>(_sourceNode))
 	{
 		for (auto const* declaration: allAnnotatedDeclarations(identifier))
-			output += collect(declaration, _sourceUnit, declaration->name());
+			output += collect(declaration, _sourceUnit, identifier->name());
 	}
 	else if (auto const* identifierPath = dynamic_cast<IdentifierPath const*>(_sourceNode))
 	{
@@ -90,41 +88,53 @@ std::vector<Reference> ReferenceCollector::collect(
 	else if (auto const* memberAccess = dynamic_cast<MemberAccess const*>(_sourceNode))
 	{
 		output += collect(memberAccess->annotation().referencedDeclaration, _sourceUnit, memberAccess->memberName());
-		// Type const* type = memberAccess->expression().annotation().type;
-		// lspDebug(fmt::format("semanticHighlight: member type is: "s + (type ? typeid(*type).name() : "NULL")));
 	}
 	else if (auto const* declaration = dynamic_cast<Declaration const*>(_sourceNode))
 	{
 		output += collect(declaration, _sourceUnit, declaration->name());
 	}
-	else
-	{
-		lspDebug(fmt::format("semanticHighlight: not handled: {}", typeid(*_sourceNode).name()));
-	}
 
 	return output;
 }
 
-void ReferenceCollector::endVisit(frontend::ImportDirective const& _import)
+bool ReferenceCollector::visit(ImportDirective const& _import)
+{
+	if (_import.name() == m_sourceIdentifierName)
+		return true;
+	return false;
+}
+
+void ReferenceCollector::endVisit(ImportDirective const& _import)
 {
 	for (auto const& symbolAlias: _import.symbolAliases())
-		if (m_sourceIdentifierName == *symbolAlias.alias)
+	{
+		if (
+			m_sourceIdentifierName == *symbolAlias.alias &&
+			symbolAlias.symbol &&
+			symbolAlias.symbol->annotation().referencedDeclaration == &m_declaration
+		)
+		{
+			m_result.emplace_back(Reference{symbolAlias.location, DocumentHighlightKind::Read});
+			break;
+		}
+		else if (m_sourceIdentifierName == *symbolAlias.alias)
 		{
 			m_result.emplace_back(Reference{symbolAlias.location, DocumentHighlightKind::Text});
 			break;
 		}
+	}
 }
 
-bool ReferenceCollector::tryAddReference(frontend::Declaration const* _declaration, SourceLocation const& _location)
+bool ReferenceCollector::tryAddReference(Declaration const* _declaration, SourceLocation const& _location)
 {
 	if (&m_declaration != _declaration)
 		return false;
 
-	m_result.emplace_back(Reference{_location, DocumentHighlightKind::Text});
+	m_result.emplace_back(Reference{_location, m_kind});
 	return true;
 }
 
-void ReferenceCollector::endVisit(frontend::Identifier const& _identifier)
+void ReferenceCollector::endVisit(Identifier const& _identifier)
 {
 	if (auto const* declaration = _identifier.annotation().referencedDeclaration)
 		tryAddReference(declaration, _identifier.location());
@@ -133,25 +143,46 @@ void ReferenceCollector::endVisit(frontend::Identifier const& _identifier)
 		tryAddReference(declaration, _identifier.location());
 }
 
-void ReferenceCollector::endVisit(frontend::IdentifierPath  const& _identifierPath)
+
+void ReferenceCollector::endVisit(IdentifierPath const& _identifierPath)
 {
 	tryAddReference(_identifierPath.annotation().referencedDeclaration, _identifierPath.location());
 }
 
-void ReferenceCollector::endVisit(frontend::MemberAccess const& _memberAccess)
+void ReferenceCollector::endVisit(MemberAccess const& _memberAccess)
 {
 	if (_memberAccess.annotation().referencedDeclaration == &m_declaration)
-		m_result.emplace_back(Reference{_memberAccess.location(), DocumentHighlightKind::Text});
+		m_result.emplace_back(Reference{_memberAccess.location(), m_kind});
 }
 
-bool ReferenceCollector::visitNode(frontend::ASTNode const& _node)
+bool ReferenceCollector::visit(Assignment const& _node)
+{
+	auto const oldKind = m_kind;
+	m_kind = DocumentHighlightKind::Write;
+	_node.leftHandSide().accept(*this);
+	m_kind = DocumentHighlightKind::Read;
+	_node.rightHandSide().accept(*this);
+	m_kind = oldKind;
+	return false;
+}
+
+bool ReferenceCollector::visit(VariableDeclaration const& _node)
+{
+	if (&_node == &m_declaration)
+	{
+		m_result.emplace_back(Reference{_node.nameLocation(), DocumentHighlightKind::Write});
+	}
+	return true;
+}
+
+bool ReferenceCollector::visitNode(ASTNode const& _node)
 {
 	if (&_node == &m_declaration)
 	{
 		if (auto const* declaration = dynamic_cast<Declaration const*>(&_node))
-			m_result.emplace_back(Reference{declaration->nameLocation(), DocumentHighlightKind::Text});
+			m_result.emplace_back(Reference{declaration->nameLocation(), m_kind});
 		else
-			m_result.emplace_back(Reference{_node.location(), DocumentHighlightKind::Text});
+			m_result.emplace_back(Reference{_node.location(), DocumentHighlightKind::Read});
 	}
 
 	return true;
