@@ -812,6 +812,9 @@ ASTPointer<VariableDeclaration> Parser::parseVariableDeclaration(
 					case Token::CallData:
 						location = VariableDeclaration::Location::CallData;
 						break;
+					case Token::Code:
+						location = VariableDeclaration::Location::Code;
+						break;
 					default:
 						solAssert(false, "Unknown data location.");
 					}
