@@ -21,6 +21,8 @@
 #include <libsolidity/ast/AST.h>
 #include <libsolidity/lsp/LanguageServer.h>
 
+#include <libsolutil/Common.h>
+
 using namespace solidity::frontend;
 using namespace solidity::langutil;
 using namespace std::string_literals;
@@ -159,12 +161,14 @@ void ReferenceCollector::endVisit(MemberAccess const& _memberAccess)
 
 bool ReferenceCollector::visit(Assignment const& _node)
 {
-	auto const oldKind = m_kind;
+	auto const restoreKind = ScopeGuard{[this, savedKind=m_kind]() { m_kind = savedKind; }};
+
 	m_kind = DocumentHighlightKind::Write;
 	_node.leftHandSide().accept(*this);
+
 	m_kind = DocumentHighlightKind::Read;
 	_node.rightHandSide().accept(*this);
-	m_kind = oldKind;
+
 	return false;
 }
 
