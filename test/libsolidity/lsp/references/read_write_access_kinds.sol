@@ -12,13 +12,15 @@ contract C
     //  ^^^^^^ @OutputWrite1
     //     ^ @OutputWrite
         output.green = output.red;
+    //  ^^^^^^^^^^^^ @OutputGreenWrite1
     //  ^^^^^^ @OutputWrite2
     //                 ^^^^^^ @OutputRead1
     //         ^ @GreenWrite
         output.blue = output.green;
+    //                ^^^^^^^^^^^^ @OutputGreenRead1
     //  ^^^^^^ @OutputWrite3
-    //                 ^^^^^^ @OutputRead2
-        //                   ^ @GreenUse
+    //                ^^^^^^ @OutputRead2
+    //                       ^ @GreenUse
     }
 }
 
@@ -59,29 +61,11 @@ contract C
 // <- [
 //     {
 //         "kind": 3,
-//         "range": {
-//             "end": {
-//                 "character": 20,
-//                 "line": 11
-//             },
-//             "start": {
-//                 "character": 8,
-//                 "line": 11
-//             }
-//         }
+//         "range": @OutputGreenWrite1
 //     },
 //     {
 //         "kind": 2,
-//         "range": {
-//             "end": {
-//                 "character": 34,
-//                 "line": 13
-//             },
-//             "start": {
-//                 "character": 22,
-//                 "line": 13
-//             }
-//         }
+//         "range": @OutputGreenRead1
 //     }
 // ]
 // -> textDocument/documentHighlight {
@@ -90,28 +74,10 @@ contract C
 // <- [
 //     {
 //         "kind": 3,
-//         "range": {
-//             "end": {
-//                 "character": 20,
-//                 "line": 11
-//             },
-//             "start": {
-//                 "character": 8,
-//                 "line": 11
-//             }
-//         }
+//         "range": @OutputGreenWrite1
 //     },
 //     {
 //         "kind": 2,
-//         "range": {
-//             "end": {
-//                 "character": 34,
-//                 "line": 13
-//             },
-//             "start": {
-//                 "character": 22,
-//                 "line": 13
-//             }
-//         }
+//         "range": @OutputGreenRead1
 //     }
 // ]
