@@ -93,6 +93,8 @@ std::vector<Reference> ReferenceCollector::collect(
 	{
 		output += collect(declaration, _sourceUnit, declaration->name());
 	}
+	else
+		lspAssert(false, ErrorCode::InternalError, "Unhandled AST node "s + typeid(*_sourceNode).name());
 
 	return output;
 }
