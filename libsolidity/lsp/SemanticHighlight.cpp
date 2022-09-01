@@ -48,52 +48,5 @@ vector<Reference> SemanticHighlight::semanticHighlight(ASTNode const* _sourceNod
 	SourceUnit const& sourceUnit = m_server.ast(_sourceUnitName);
 
 	return ReferenceCollector::collect(_sourceNode, sourceUnit);
-#if 0 // TODO(pr) ensure it's all covered in ReferenceCollector before deleting this code!
-	if (auto const* declaration = dynamic_cast<Declaration const*>(_sourceNode))
-	{
-		output += ReferenceCollector::collect(declaration, sourceUnit, declaration->name());
-	}
-	else if (auto const* identifier = dynamic_cast<Identifier const*>(_sourceNode))
-	{
-		for (auto const* declaration: allAnnotatedDeclarations(identifier))
-			output += ReferenceCollector::collect(declaration, sourceUnit, identifier->name());
-	}
-	else if (auto const* identifierPath = dynamic_cast<IdentifierPath const*>(_sourceNode))
-	{
-		solAssert(!identifierPath->path().empty(), "");
-		output += ReferenceCollector::collect(identifierPath->annotation().referencedDeclaration, sourceUnit, identifierPath->path().back());
-	}
-	else if (auto const* memberAccess = dynamic_cast<MemberAccess const*>(_sourceNode))
-	{
-		Type const* type = memberAccess->expression().annotation().type;
-		if (auto const* ttype = dynamic_cast<TypeType const*>(type))
-		{
-			auto const memberName = memberAccess->memberName();
-
-			if (auto const* enumType = dynamic_cast<EnumType const*>(ttype->actualType()))
-			{
-				// find the definition
-				for (ASTPointer<EnumValue> const& enumMember: enumType->enumDefinition().members())
-					if (enumMember->name() == memberName)
-						output += ReferenceCollector::collect(enumMember.get(), sourceUnit, enumMember->name());
-
-				// TODO: find uses of the enum value
-			}
-		}
-		else if (auto const* structType = dynamic_cast<StructType const*>(type))
-		{
-			(void) structType; // TODO
-			// TODO: highlight all struct member occurrences.
-			// memberAccess->memberName()
-			// structType->
-		}
-		else
-		{
-			// TODO: EnumType, ...
-			lspDebug(fmt::format("semanticHighlight: member type is: "s + (type ? typeid(*type).name() : "NULL")));
-		}
-	}
-	return output;
-#endif
 }
 
