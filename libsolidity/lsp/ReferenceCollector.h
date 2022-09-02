@@ -62,7 +62,7 @@ private:
 private:
 	frontend::Declaration const& m_declaration;
 	std::string const& m_sourceIdentifierName;
-	std::vector<Reference> m_result;
+	std::vector<Reference> m_resultingReferences;
 	DocumentHighlightKind m_kind = DocumentHighlightKind::Read;
 };
 

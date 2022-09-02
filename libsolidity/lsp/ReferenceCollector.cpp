@@ -64,7 +64,7 @@ std::vector<Reference> ReferenceCollector::collect(
 
 	ReferenceCollector collector(*_declaration, _sourceIdentifierName);
 	_ast.accept(collector);
-	return move(collector.m_result);
+	return move(collector.m_resultingReferences);
 }
 
 std::vector<Reference> ReferenceCollector::collect(
@@ -118,12 +118,12 @@ void ReferenceCollector::endVisit(ImportDirective const& _import)
 			symbolAlias.symbol->annotation().referencedDeclaration == &m_declaration
 		)
 		{
-			m_result.emplace_back(Reference{symbolAlias.location, DocumentHighlightKind::Read});
+			m_resultingReferences.emplace_back(symbolAlias.location, DocumentHighlightKind::Read);
 			break;
 		}
 		else if (m_sourceIdentifierName == *symbolAlias.alias)
 		{
-			m_result.emplace_back(Reference{symbolAlias.location, DocumentHighlightKind::Text});
+			m_resultingReferences.emplace_back(symbolAlias.location, DocumentHighlightKind::Text);
 			break;
 		}
 	}
@@ -134,7 +134,7 @@ bool ReferenceCollector::tryAddReference(Declaration const* _declaration, Source
 	if (&m_declaration != _declaration)
 		return false;
 
-	m_result.emplace_back(Reference{_location, m_kind});
+	m_resultingReferences.emplace_back(_location, m_kind);
 	return true;
 }
 
@@ -156,7 +156,7 @@ void ReferenceCollector::endVisit(IdentifierPath const& _identifierPath)
 void ReferenceCollector::endVisit(MemberAccess const& _memberAccess)
 {
 	if (_memberAccess.annotation().referencedDeclaration == &m_declaration)
-		m_result.emplace_back(Reference{_memberAccess.location(), m_kind});
+		m_resultingReferences.emplace_back(_memberAccess.location(), m_kind);
 }
 
 bool ReferenceCollector::visit(Assignment const& _node)
@@ -176,7 +176,7 @@ bool ReferenceCollector::visit(VariableDeclaration const& _node)
 {
 	if (&_node == &m_declaration)
 	{
-		m_result.emplace_back(Reference{_node.nameLocation(), DocumentHighlightKind::Write});
+		m_resultingReferences.emplace_back(_node.nameLocation(), DocumentHighlightKind::Write);
 	}
 	return true;
 }
@@ -186,9 +186,9 @@ bool ReferenceCollector::visitNode(ASTNode const& _node)
 	if (&_node == &m_declaration)
 	{
 		if (auto const* declaration = dynamic_cast<Declaration const*>(&_node))
-			m_result.emplace_back(Reference{declaration->nameLocation(), m_kind});
+			m_resultingReferences.emplace_back(declaration->nameLocation(), m_kind);
 		else
-			m_result.emplace_back(Reference{_node.location(), DocumentHighlightKind::Read});
+			m_resultingReferences.emplace_back(_node.location(), DocumentHighlightKind::Read);
 	}
 
 	return true;
