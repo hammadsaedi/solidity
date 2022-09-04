@@ -27,8 +27,8 @@ optimized Yul IR for a Solidity source. Similarly, one can use ``solc --strict-a
 for a stand-alone Yul mode.
 
 .. note::
-    The PeepholeOptimizer is always enabled by default and can only be turned off via the
-    :ref:`JSON-input-output interface <compiler-api>`.
+    The `PeepholeOptimizer <https://en.wikipedia.org/wiki/Peephole_optimization>`_ is always
+    enabled by default and can only be turned off via the :ref:`JSON-input-output interface <compiler-api>`.
 
 You can find more details on both optimizer modules and their optimization steps below.
 
