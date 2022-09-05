@@ -1,6 +1,9 @@
 {
     function conditionallyStop() {
         if calldataload(0) { leave }
+        returnEmpty()
+    }
+    function returnEmpty() {
         return(0, 0)
     }
     let x := 0
@@ -23,6 +26,8 @@
 //     function conditionallyStop()
 //     {
 //         if calldataload(0) { leave }
-//         return(0, 0)
+//         returnEmpty()
 //     }
+//     function returnEmpty()
+//     { return(0, 0) }
 // }
