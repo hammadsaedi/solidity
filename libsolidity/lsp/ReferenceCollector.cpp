@@ -64,7 +64,7 @@ std::vector<Reference> ReferenceCollector::collect(
 
 	ReferenceCollector collector(*_declaration, _sourceIdentifierName);
 	_ast.accept(collector);
-	return move(collector.m_resultingReferences);
+	return std::move(collector.m_resultingReferences);
 }
 
 std::vector<Reference> ReferenceCollector::collect(
@@ -88,13 +88,9 @@ std::vector<Reference> ReferenceCollector::collect(
 		output += collect(identifierPath->annotation().referencedDeclaration, _sourceUnit, identifierPath->path().back());
 	}
 	else if (auto const* memberAccess = dynamic_cast<MemberAccess const*>(_sourceNode))
-	{
 		output += collect(memberAccess->annotation().referencedDeclaration, _sourceUnit, memberAccess->memberName());
-	}
 	else if (auto const* declaration = dynamic_cast<Declaration const*>(_sourceNode))
-	{
 		output += collect(declaration, _sourceUnit, declaration->name());
-	}
 	else
 		lspAssert(false, ErrorCode::InternalError, "Unhandled AST node "s + typeid(*_sourceNode).name());
 
@@ -175,9 +171,8 @@ bool ReferenceCollector::visit(Assignment const& _node)
 bool ReferenceCollector::visit(VariableDeclaration const& _node)
 {
 	if (&_node == &m_declaration)
-	{
 		m_resultingReferences.emplace_back(_node.nameLocation(), DocumentHighlightKind::Write);
-	}
+
 	return true;
 }
 

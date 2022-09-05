@@ -25,7 +25,7 @@ class References: public HandlerBase
 public:
 	explicit References(LanguageServer& _server): HandlerBase(_server) {}
 
-	void operator()(MessageID, Json::Value const&);
+	void operator()(MessageID _id, Json::Value const& _args);
 };
 
 }
