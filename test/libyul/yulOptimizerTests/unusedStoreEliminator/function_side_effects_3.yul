@@ -16,6 +16,7 @@
 //     {
 //         let x := 0
 //         let y := 1
+//         sstore(x, y)
 //         conditionallyStop()
 //         sstore(x, y)
 //     }
