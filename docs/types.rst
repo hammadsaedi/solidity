@@ -351,7 +351,7 @@ check the value ranges at runtime and a failure causes an exception.  Enums need
             return choice;
         }
 
-        function getDefaultChoice() public pure returns (uint) {
+        function getDefaultChoice() public view returns (uint) {
             return uint(defaultChoice);
         }
     }
