@@ -49,6 +49,26 @@ SourceReferenceExtractor::Message SourceReferenceExtractor::extract(
 
 SourceReferenceExtractor::Message SourceReferenceExtractor::extract(
 	CharStreamProvider const& _charStreamProvider,
+	util::Exception const& _exception,
+	Error::Severity _severity
+)
+{
+	SourceLocation const* location = boost::get_error_info<errinfo_sourceLocation>(_exception);
+
+	string const* message = boost::get_error_info<util::errinfo_comment>(_exception);
+	SourceReference primary = extract(_charStreamProvider, location, message ? *message : "");
+
+	std::vector<SourceReference> secondary;
+	auto secondaryLocation = boost::get_error_info<errinfo_secondarySourceLocation>(_exception);
+	if (secondaryLocation && !secondaryLocation->infos.empty())
+		for (auto const& info: secondaryLocation->infos)
+			secondary.emplace_back(extract(_charStreamProvider, &info.second, info.first));
+
+	return Message{std::move(primary), _severity, std::move(secondary), nullopt};
+}
+
+SourceReferenceExtractor::Message SourceReferenceExtractor::extract(
+	CharStreamProvider const& _charStreamProvider,
 	Error const& _error
 )
 {

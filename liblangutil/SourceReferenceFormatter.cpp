@@ -175,16 +175,24 @@ void SourceReferenceFormatter::printSourceLocation(SourceReference const& _ref)
 	}
 }
 
-void SourceReferenceFormatter::printExceptionInformation(SourceReferenceExtractor::Message const& _msg, bool _printFullType)
+void SourceReferenceFormatter::printExceptionInformation(SourceReferenceExtractor::Message const& _msg)
 {
-	errorColored(Error::errorSeverity(_msg.type)) << (
-		_printFullType ?
-		Error::formatErrorType(_msg.type) :
-		Error::formatErrorSeverity(Error::errorSeverity(_msg.type))
+	errorColored(
+		std::holds_alternative<Error::Type>(_msg._typeOrSeverity) ?
+		Error::errorSeverity(std::get<Error::Type>(_msg._typeOrSeverity)) :
+		std::get<Error::Severity>(_msg._typeOrSeverity)
+	) << (
+		std::holds_alternative<Error::Type>(_msg._typeOrSeverity) ?
+		Error::formatErrorType(std::get<Error::Type>(_msg._typeOrSeverity)) :
+		Error::formatErrorSeverity(std::get<Error::Severity>(_msg._typeOrSeverity))
 	);
 
 	if (m_withErrorIds && _msg.errorId.has_value())
-		errorColored(Error::errorSeverity(_msg.type)) << " (" << _msg.errorId.value().error << ")";
+		errorColored(
+			std::holds_alternative<Error::Type>(_msg._typeOrSeverity) ?
+			Error::errorSeverity(std::get<Error::Type>(_msg._typeOrSeverity)) :
+			std::get<Error::Severity>(_msg._typeOrSeverity)
+		) << " (" << _msg.errorId.value().error << ")";
 
 	messageColored() << ": " << _msg.primary.message << '\n';
 	printSourceLocation(_msg.primary);
@@ -199,9 +207,14 @@ void SourceReferenceFormatter::printExceptionInformation(SourceReferenceExtracto
 	m_stream << '\n';
 }
 
-void SourceReferenceFormatter::printExceptionInformation(util::Exception const& _exception, Error::Type _type, bool _printFullType)
+void SourceReferenceFormatter::printExceptionInformation(util::Exception const& _exception, Error::Type _type)
 {
-	printExceptionInformation(SourceReferenceExtractor::extract(m_charStreamProvider, _exception, _type), _printFullType);
+	printExceptionInformation(SourceReferenceExtractor::extract(m_charStreamProvider, _exception, _type));
+}
+
+void SourceReferenceFormatter::printExceptionInformation(util::Exception const& _exception, Error::Severity _severity)
+{
+	printExceptionInformation(SourceReferenceExtractor::extract(m_charStreamProvider, _exception, _severity));
 }
 
 void SourceReferenceFormatter::printErrorInformation(ErrorList const& _errors)
